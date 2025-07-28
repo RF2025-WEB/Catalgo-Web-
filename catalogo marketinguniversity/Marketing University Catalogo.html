@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarketingUniversity</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Toastify for notifications -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style id="app-style">
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Un azul muy claro para el fondo */
+            color: #2d3748; /* Texto oscuro para contraste */
+        }
+
+        /* Custom Styles for product cards and modals */
+        .overlay {
+            background-color: rgba(0, 0, 0, 0.6);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .product-card:hover .overlay {
+            opacity: 1;
+        }
+        
+        .category-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 10;
+        }
+        
+        .modal {
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        .shimmer {
+            background: linear-gradient(90deg, #e2e8f0 0%, #cbd5e0 50%, #e2e8f0 100%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% {
+                background-position: -200% 0;
+            }
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #e2e8f0;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #a0aec0;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #718096;
+            border-radius: 4px;
+        }
+
+        /* Responsive product grid */
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: 1.5rem; /* Increased gap for better spacing */
+        }
+        
+        @media (min-width: 640px) {
+            .product-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (min-width: 768px) {
+            .product-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (min-width: 1024px) {
+            .product-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        @media (min-width: 1280px) {
+            .product-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+        }
+
+        /* Category Card Grid */
+        .category-card-grid {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: 1.5rem;
+        }
+        @media (min-width: 640px) {
+            .category-card-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (min-width: 768px) {
+            .category-card-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        @media (min-width: 1024px) {
+            .category-card-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navbar -->
+    <nav class="bg-white shadow-lg sticky top-0 z-30 rounded-b-xl">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <i class="fas fa-utensils text-3xl text-blue-800 mr-3"></i>
+                    <span class="text-2xl font-extrabold text-gray-800">MarketingUniversity</span>
+                </div>
+                
+                <!-- Search input -->
+                <div class="relative w-full md:w-80">
+                    <input type="text" id="search-input" placeholder="Buscar productos..." class="w-full pl-12 pr-4 py-2.5 border border-gray-300 rounded-full focus:outline-none focus:ring-3 focus:ring-blue-300 transition-all duration-200 shadow-sm">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+
+                <!-- Cart and History Icons -->
+                <div class="flex items-center space-x-6">
+                    <button id="open-favorites" class="text-gray-600 hover:text-red-500 text-3xl transition-colors relative" title="Favoritos">
+                        <i class="fas fa-heart"></i>
+                        <span id="favorites-counter" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
+                    </button>
+                    <button id="open-history" class="text-gray-600 hover:text-blue-800 text-3xl transition-colors relative" title="Historial de Compras">
+                        <i class="fas fa-history"></i>
+                        <span id="history-counter" class="absolute -top-2 -right-2 bg-green-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
+                    </button>
+                    <button id="open-cart" class="text-gray-600 hover:text-blue-800 text-3xl transition-colors relative" title="Carrito de Compras">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span id="cart-counter" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        <h1 id="main-title" class="text-3xl font-bold text-gray-800 mb-8 text-center">Explora Nuestros Productos</h1>
+
+        <!-- Category Showcase Section -->
+        <section id="category-showcase" class="mb-12">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Explora por Categoría</h2>
+            <div class="category-card-grid">
+                <div class="category-card bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer transform hover:scale-105 transition duration-300" data-category="sartenes">
+                    <img src="https://placehold.co/400x200/FEE2E2/EF4444?text=Sartenes" alt="Sartenes" class="w-full h-32 object-cover">
+                    <div class="p-4 text-center">
+                        <h3 class="font-bold text-lg text-gray-800">Sartenes</h3>
+                    </div>
+                </div>
+                <div class="category-card bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer transform hover:scale-105 transition duration-300" data-category="ollas">
+                    <img src="https://placehold.co/400x200/DBEAFE/3B82F6?text=Ollas+y+Lecheros" alt="Ollas y Lecheros" class="w-full h-32 object-cover">
+                    <div class="p-4 text-center">
+                        <h3 class="font-bold text-lg text-gray-800">Ollas y Lecheros</h3>
+                    </div>
+                </div>
+                <div class="category-card bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer transform hover:scale-105 transition duration-300" data-category="electrodomesticos">
+                    <img src="https://placehold.co/400x200/FEF9C3/F59E0B?text=Electrodomésticos" alt="Electrodomésticos" class="w-full h-32 object-cover">
+                    <div class="p-4 text-center">
+                        <h3 class="font-bold text-lg text-gray-800">Electrodomésticos</h3>
+                    </div>
+                </div>
+                <div class="category-card bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer transform hover:scale-105 transition duration-300" data-category="tazones">
+                    <img src="https://placehold.co/400x200/EEF2FF/6366F1?text=Tazones+y+Platos" alt="Tazones y Platos" class="w-full h-32 object-cover">
+                    <div class="p-4 text-center">
+                        <h3 class="font-bold text-lg text-gray-800">Tazones y Platos</h3>
+                    </div>
+                </div>
+                <div class="category-card bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer transform hover:scale-105 transition duration-300" data-category="cristaleria">
+                    <img src="https://placehold.co/400x200/F3E8FF/A855F7?text=Vasos+y+Copas" alt="Vasos y Copas" class="w-full h-32 object-cover">
+                    <div class="p-4 text-center">
+                        <h3 class="font-bold text-lg text-gray-800">Vasos y Copas</h3>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Product Listing Section -->
+        <section id="product-listing-section" class="hidden">
+            <div class="flex justify-between items-center mb-8">
+                <button id="back-to-categories-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2.5 rounded-full shadow-md font-semibold transition-all duration-200 flex items-center justify-center">
+                    <i class="fas fa-arrow-left mr-2"></i> Volver a Categorías
+                </button>
+                <!-- Sort Options -->
+                <div class="relative">
+                    <select id="sort-options" class="block appearance-none w-full bg-white border border-gray-300 text-gray-700 py-2 px-4 pr-8 rounded-full shadow-sm leading-tight focus:outline-none focus:ring-2 focus:ring-blue-300">
+                        <option value="default">Ordenar por</option>
+                        <option value="price-asc">Precio: Menor a Mayor</option>
+                        <option value="price-desc">Precio: Mayor a Menor</option>
+                        <option value="name-asc">Nombre: A-Z</option>
+                        <option value="name-desc">Nombre: Z-A</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters tags -->
+            <div id="active-filters" class="flex flex-wrap justify-center gap-3 mb-8 hidden">
+                <!-- Active filters will appear here -->
+            </div>
+            
+            <!-- Product grid -->
+            <div class="product-grid mb-12" id="product-grid">
+                <!-- Shimmer loading placeholders -->
+                <div class="shimmer h-64 rounded-xl"></div>
+                <div class="shimmer h-64 rounded-xl"></div>
+                <div class="shimmer h-64 rounded-xl"></div>
+                <div class="shimmer h-64 rounded-xl"></div>
+                <div class="shimmer h-64 rounded-xl"></div>
+                <div class="shimmer h-64 rounded-xl"></div>
+            </div>
+            
+            <!-- No results message -->
+            <div id="no-results" class="hidden text-center py-20">
+                <i class="fas fa-search text-6xl text-gray-300 mb-6"></i>
+                <h2 class="text-3xl font-bold text-gray-600 mb-3">¡Vaya! No encontramos lo que buscas.</h2>
+                <p class="text-gray-500 text-lg">Intenta ajustar tu búsqueda o selecciona otra categoría.</p>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div id="pagination-controls" class="flex justify-center items-center space-x-4 mt-8">
+                <button id="prev-page-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed">Anterior</button>
+                <span id="page-info" class="text-lg font-semibold text-gray-700">Página 1 de 1</span>
+                <button id="next-page-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed">Siguiente</button>
+            </div>
+        </section>
+
+        <!-- Product Detail Page (formerly modal) -->
+        <section id="product-detail-page" class="hidden bg-white rounded-xl shadow-2xl p-8 max-w-5xl mx-auto flex flex-col md:flex-row gap-8">
+            <div class="w-full md:w-1/2 bg-gray-50 flex items-center justify-center p-6 rounded-lg">
+                <img id="detail-image" class="max-w-full max-h-[450px] object-contain rounded-lg shadow-md" src="" alt="Product image">
+            </div>
+            <div class="w-full md:w-1/2 flex flex-col relative">
+                <button id="back-to-shop-btn" class="absolute top-0 right-0 text-gray-400 hover:text-gray-600 text-2xl focus:outline-none transition-colors">
+                    <i class="fas fa-times-circle"></i>
+                </button>
+                
+                <div class="mb-4">
+                    <span id="detail-category" class="px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800"></span>
+                </div>
+                
+                <h2 id="detail-title" class="text-3xl font-extrabold text-gray-800 mt-2 mb-3"></h2>
+                <p id="detail-description" class="text-gray-700 text-base leading-relaxed mb-6"></p>
+                
+                <div class="flex items-baseline mb-6">
+                    <span id="detail-price" class="text-3xl font-bold text-blue-800 mr-3"></span>
+                    <s id="detail-old-price" class="text-gray-500 text-lg"></s>
+                </div>
+                
+                <div class="flex items-center mb-6">
+                    <button id="toggle-favorite-detail" class="text-gray-400 hover:text-red-500 text-3xl transition-colors mr-4" title="Añadir a Favoritos">
+                        <i class="far fa-heart"></i>
+                    </button>
+                    <span id="detail-stock" class="text-sm font-medium text-gray-600"></span>
+                </div>
+
+                <div class="mt-auto pt-6 border-t border-gray-200">
+                    <h3 class="text-sm font-semibold text-gray-600 mb-3">Etiquetas:</h3>
+                    <div id="detail-tags" class="flex flex-wrap gap-2 mb-6"></div>
+                    
+                    <div class="flex justify-end items-center mt-4">
+                        <button id="add-to-cart-detail" class="bg-blue-800 hover:bg-blue-900 text-white px-4 py-2.5 rounded-full shadow-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center">
+                            <i class="fas fa-cart-plus mr-2"></i> Añadir al Carrito
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Cart Modal -->
+    <div id="cart-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden modal p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                <h2 class="text-2xl font-bold text-gray-800">Tu Carrito de Compras</h2>
+                <button id="close-cart-modal" class="text-gray-400 hover:text-gray-600 text-2xl focus:outline-none transition-colors">
+                    <i class="fas fa-times-circle"></i>
+                </button>
+            </div>
+            <div id="cart-items-container" class="flex-grow overflow-y-auto p-6 space-y-4">
+                <!-- Cart items will be rendered here -->
+                <div id="empty-cart-message" class="text-center text-gray-500 py-10 hidden">
+                    <i class="fas fa-box-open text-5xl mb-4"></i>
+                    <p class="text-lg">Tu carrito está vacío. ¡Añade algunos productos!</p>
+                </div>
+            </div>
+            <div class="p-6 border-t border-gray-200">
+                <!-- Shipping Estimation Section -->
+                <div class="mb-4">
+                    <label for="zip-code" class="block text-sm font-medium text-gray-700 mb-2">Código Postal para Envío:</label>
+                    <input type="text" id="zip-code" placeholder="Ej. 01001" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-300">
+                </div>
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-md font-semibold text-gray-700">Envío:</span>
+                    <span id="shipping-cost" class="text-md font-bold text-blue-800">Q0.00</span>
+                </div>
+
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-xl font-semibold text-gray-700">Subtotal:</span>
+                    <span id="cart-subtotal" class="text-xl font-bold text-blue-800">Q0.00</span>
+                </div>
+                <div class="flex justify-between items-center mb-6">
+                    <span class="text-2xl font-bold text-gray-800">Total:</span>
+                    <span id="cart-total" class="text-2xl font-extrabold text-blue-900">Q0.00</span>
+                </div>
+                <button id="clear-cart-button" class="w-full bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-full shadow-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center justify-center mb-4">
+                    <i class="fas fa-trash-alt mr-2"></i> Vaciar Carrito
+                </button>
+                <button id="checkout-button" class="w-full bg-blue-800 hover:bg-blue-900 text-white px-6 py-3 rounded-full shadow-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center justify-center">
+                    <i class="fas fa-cash-register mr-2"></i> Finalizar Compra
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Favorites Modal (formerly Saved for Later) -->
+    <div id="favorites-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden modal p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                <h2 class="text-2xl font-bold text-gray-800">Tus Favoritos</h2>
+                <button id="close-favorites-modal" class="text-gray-400 hover:text-gray-600 text-2xl focus:outline-none transition-colors">
+                    <i class="fas fa-times-circle"></i>
+                </button>
+            </div>
+            <div id="favorites-items-container" class="flex-grow overflow-y-auto p-6 space-y-4">
+                <!-- Favorite items will be rendered here -->
+                <div id="empty-favorites-message" class="text-center text-gray-500 py-10 hidden">
+                    <i class="fas fa-heart text-5xl mb-4"></i>
+                    <p class="text-lg">No tienes productos en tu lista de favoritos.</p>
+                </div>
+            </div>
+            <div class="p-6 border-t border-gray-200 flex justify-end">
+                <button id="go-to-cart-from-favorites" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full shadow-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center">
+                    <i class="fas fa-shopping-cart mr-2"></i> Ir al Carrito
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Purchase History Modal -->
+    <div id="purchase-history-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden modal p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                <h2 class="text-2xl font-bold text-gray-800">Historial de Compras</h2>
+                <button id="close-history-modal" class="text-gray-400 hover:text-gray-600 text-2xl focus:outline-none transition-colors">
+                    <i class="fas fa-times-circle"></i>
+                </button>
+            </div>
+            <div id="purchase-history-items-container" class="flex-grow overflow-y-auto p-6 space-y-6">
+                <!-- Purchase history items will be rendered here -->
+                <div id="empty-history-message" class="text-center text-gray-500 py-10 hidden">
+                    <i class="fas fa-receipt text-5xl mb-4"></i>
+                    <p class="text-lg">Aún no tienes compras en tu historial.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script id="app-script">
+        document.addEventListener('DOMContentLoaded', function() {
+            // Helper function to parse price string to number
+            const parsePriceToNumber = (priceString) => {
+                // Remove 'Q', 'c/u', spaces, and replace comma with dot for decimal
+                const cleanedPrice = priceString.replace('Q', '').replace('c/u', '').trim().replace(',', '.');
+                return parseFloat(cleanedPrice);
+            };
+
+            // Product data with LOCAL image paths and numeric prices
+            let products = [
+                // Sartenes
+                { id: 1, title: "Sartén de Teflón AF565-20", category: "sartenes", tags: ["teflón", "cocina", "antiadherente"], imageUrl: "images/Sartén de Teflón AF565-20.jpg", price: "Q28.30 c/u", numericPrice: parsePriceToNumber("Q28.30 c/u"), stock: 15, description: "Diámetro: 20 cms. Alto: 4.7 cms. 12 pcs x caja.", popularityScore: 10 },
+                { id: 2, title: "Sartén de Teflón AF565-28", category: "sartenes", tags: ["teflón", "cocina", "antiadherente"], imageUrl: "images/Sartén de Teflón AF565-28.jpg", price: "Q45.00 c/u", numericPrice: parsePriceToNumber("Q45.00 c/u"), stock: 10, description: "Diámetro: 28 cms. Alto: 5.5 cms. 12 pcs x caja.", popularityScore: 12 },
+                { id: 3, title: "Sartén Antiadherente No.18", category: "sartenes", tags: ["antiadherente", "baquelita", "cocina"], imageUrl: "images/Sartén Antiadherente No.18.jpg", price: "Q28.00 c/u", numericPrice: parsePriceToNumber("Q28.00 c/u"), stock: 20, description: "Mango de Baquelita. Diámetro: 18 cms. Alto: 5 cms. 24 pcs x caja.", popularityScore: 8 },
+                { id: 4, title: "Sartén de Teflón AF565-26", category: "sartenes", tags: ["teflón", "cocina", "antiadherente"], imageUrl: "images/Sartén de Teflón AF565-26.jpg", price: "Q38.50 c/u", numericPrice: parsePriceToNumber("Q38.50 c/u"), stock: 12, description: "Diámetro: 26 cms. Alto: 5 cms. 12 pcs x caja.", popularityScore: 15 },
+                { id: 5, title: "Sartén de Teflón AF565-30", category: "sartenes", tags: ["teflón", "cocina", "antiadherente"], imageUrl: "images/Sartén de Teflón AF565-30.jpg", price: "Q49.50 c/u", numericPrice: parsePriceToNumber("Q49.50 c/u"), stock: 8, description: "Diámetro: 30 cms. Alto: 5.5 cms. 12 pcs x caja.", popularityScore: 7 },
+                { id: 6, title: "Sartén de Teflón AF565-32", category: "sartenes", tags: ["teflón", "cocina", "antiadherente"], imageUrl: "images/Sartén de Teflón AF565-32.jpg", price: "Q59.00 c/u", numericPrice: parsePriceToNumber("Q59.00 c/u"), stock: 5, description: "Diámetro: 32 cms. Alto: 5.5 cms. 12 pcs x caja.", popularityScore: 9 },
+
+                // Ollas y Lecheros
+                { id: 7, title: "Set de Ollas RT-5014B", category: "ollas", tags: ["acero inoxidable", "set", "cocina"], imageUrl: "images/Set de Ollas RT-5014B.jpg", price: "Q495.00 c/u", numericPrice: parsePriceToNumber("Q495.00 c/u"), stock: 3, description: "Set de 14 piezas Acero Inoxidable. Mango de Colores. Diámetro Ollas: 16,18,20,24 cms. Cacerola: 16 cms. Sartén: 24 cms. Jarrilla: 3.5 Ltr. 2 Set x caja.", popularityScore: 20 },
+                { id: 8, title: "Olla Reina No.20", category: "ollas", tags: ["olla", "reina", "cocina"], imageUrl: "images/Olla Reina No.20.jpg", price: "Q69.00 c/u", numericPrice: parsePriceToNumber("Q69.00 c/u"), stock: 10, description: "Capacidad: 4 Ltr. Diámetro: 20 cms. Alto: 14 cms.", popularityScore: 18 },
+                { id: 9, title: "Olla Reina No.30", category: "ollas", tags: ["olla", "reina", "grande"], imageUrl: "images/Olla Reina No.30.jpg", price: "Q138.00 c/u", numericPrice: parsePriceToNumber("Q138.00 c/u"), stock: 7, description: "Capacidad: 12 Ltr. Diámetro: 30 cms. Alto: 20 cms. 8 pcs x caja.", popularityScore: 14 },
+                { id: 10, title: "Olla Reina con Orejas Tapan No.12", category: "ollas", tags: ["olla", "tapa", "pequeña"], imageUrl: "images/Olla Reina con Orejas Tapan No.12.jpg", price: "Q43.00 c/u", numericPrice: parsePriceToNumber("Q43.00 c/u"), stock: 25, description: "Capacidad: 0.67 Ltr. 16 piezas x caja.", popularityScore: 11 },
+                { id: 11, title: "Juego de Ollas CY-14P", category: "ollas", tags: ["mármol", "difusor de calor", "rosada"], imageUrl: "images/Juego de Ollas CY-14P.jpg", price: "Q795.00 c/u", numericPrice: parsePriceToNumber("Q795.00 c/u"), stock: 2, description: "Mármol con Difusor de Calor. Color Rosada. Diámetro: 18,20,22,24,26,28,30 cms. Incluye Desarmador. 2 set x caja.", popularityScore: 25 },
+                { id: 12, title: "Olla Reina No.22", category: "ollas", tags: ["olla", "reina", "mediana"], imageUrl: "images/Olla Reina No.22.jpg", price: "Q80.00 c/u", numericPrice: parsePriceToNumber("Q80.00 c/u"), stock: 18, description: "Capacidad: 4.5 Ltr. Diámetro: 22 cms. Alto: 18 cms. 16 pcs x caja.", popularityScore: 16 },
+                { id: 13, title: "Olla Reina con Orejas Tapan No.28", category: "ollas", tags: ["olla", "tapa", "grande"], imageUrl: "images/Olla Reina con Orejas Tapan No.28.jpg", price: "Q125.00 c/u", numericPrice: parsePriceToNumber("Q125.00 c/u"), stock: 9, description: "Capacidad: 10 Ltr. 12 piezas x caja.", popularityScore: 13 },
+                { id: 14, title: "Lechero Peltrum L14CFN", category: "ollas", tags: ["lechero", "peltre", "celeste"], imageUrl: "images/Lechero Peltrum L14CFN.jpg", price: "Q28.00 c/u", numericPrice: parsePriceToNumber("Q28.00 c/u"), stock: 30, description: "Color: Celeste Filo Negro. Capacidad: 40 onz. Diámetro: 6 plg. Alto: 4 plg.", popularityScore: 6 },
+                { id: 15, title: "Lechero No.20 L20BL", category: "ollas", tags: ["lechero", "blanco", "rojo"], imageUrl: "images/Lechero No.20 L20BL.jpg", price: "Q48.00 c/u", numericPrice: parsePriceToNumber("Q48.00 c/u"), stock: 20, description: "Color: Blanco Adentro y Rojo Afuera. Capacidad: 96 onz (3 Ltr.). Diámetro: 8.5 plg. Alto: 5.5 plg.", popularityScore: 8 },
+                { id: 16, title: "Olla Reina con Orejas Tapan No.14", category: "ollas", tags: ["olla", "tapa", "pequeña"], imageUrl: "images/Olla Reina con Orejas Tapan No.14.jpg", price: "Q49.00 c/u", numericPrice: parsePriceToNumber("Q49.00 c/u"), stock: 22, description: "Capacidad: 1.23 Ltr. 24 piezas x caja.", popularityScore: 10 },
+                { id: 17, title: "Olla Reina con Orejas Tapan No.24", category: "ollas", tags: ["olla", "tapa", "mediana"], imageUrl: "images/Olla Reina con Orejas Tapan No.24.jpg", price: "Q90.00 c/u", numericPrice: parsePriceToNumber("Q90.00 c/u"), stock: 14, description: "Capacidad: 5 Ltr. 16 piezas x caja.", popularityScore: 15 },
+                { id: 18, title: "Olla Reina No.16", category: "ollas", tags: ["olla", "reina", "pequeña"], imageUrl: "images/Olla Reina No.16.jpg", price: "Q57.00 c/u", numericPrice: parsePriceToNumber("Q57.00 c/u"), stock: 17, description: "Capacidad: 2.10 Ltr. Diámetro: 16 cms. Alto: 12 cms.", popularityScore: 9 },
+                { id: 19, title: "Juego de Ollas CY-14B", category: "ollas", tags: ["mármol", "difusor de calor", "beige"], imageUrl: "images/Juego de Ollas CY-14B.jpg", price: "Q795.00 c/u", numericPrice: parsePriceToNumber("Q795.00 c/u"), stock: 4, description: "Mármol con Difusor de Calor. Tapas de Vidrio. Color Beige. Diámetro: 18,20,22,24,26,28,30 cms. Incluye Desarmador. 2 set x caja.", popularityScore: 22 },
+                { id: 20, title: "Olla Reina con Orejas Tapan No.26", category: "ollas", tags: ["olla", "tapa", "grande"], imageUrl: "images/Olla Reina con Orejas Tapan No.26.jpg", price: "Q110.00 c/u", numericPrice: parsePriceToNumber("Q110.00 c/u"), stock: 11, description: "Capacidad: 8 Ltr. 12 piezas x caja.", popularityScore: 17 },
+                { id: 21, title: "Lechero Peltre L16CFN", category: "ollas", tags: ["lechero", "peltre", "celeste"], imageUrl: "images/Lechero Peltre L16CFN.jpg", price: "Q34.00 c/u", numericPrice: parsePriceToNumber("Q34.00 c/u"), stock: 28, description: "Color: Celeste Filo Negro. Capacidad: 64 onz. (1.89 Ltr). Diámetro: 7 plg. Alto: 5 plg.", popularityScore: 7 },
+                { id: 22, title: "Set de 11 piezas Mármol AL-911G-RE", category: "ollas", tags: ["mármol", "set", "rojo", "azul", "negro"], imageUrl: "images/Set de 11 piezas Mármol AL-911G-RE.jpg", price: "Q650.00 c/u", numericPrice: parsePriceToNumber("Q650.00 c/u"), stock: 1, description: "Color: Rojo, Azul, Negro. Diámetro Ollas: 20,22,24,26,28 cms. Sartén: 20 cms. 2 set x caja.", popularityScore: 28 },
+
+                // Electrodomésticos
+                { id: 23, title: "Microondas PI0020MWN", category: "electrodomesticos", tags: ["microondas", "negro", "cocina"], imageUrl: "images/Microondas PI0020MWN.jpg", price: "Q575.00 c/u", numericPrice: parsePriceToNumber("Q575.00 c/u"), stock: 6, description: "0.7 pies cúbicos. 700 Watts. Color Negro. Ancho: 17.5x11.5 plg. Alto: 10 plg.", popularityScore: 19 },
+                { id: 24, title: "Microondas PI0020MWB", category: "electrodomesticos", tags: ["microondas", "blanco", "cocina"], imageUrl: "images/Microondas PI0020MWB.jpg", price: "Q565.00 c/u", numericPrice: parsePriceToNumber("Q565.00 c/u"), stock: 7, description: "0.7 pies cúbicos. 700 Watts. Color Blanco. Ancho: 17.5x11.5 plg. Alto: 10 plg.", popularityScore: 17 },
+                { id: 25, title: "Licuadora ICE CRUSH BL2209PB-LA", category: "electrodomesticos", tags: ["licuadora", "hielo", "gris"], imageUrl: "images/Licuadora ICE CRUSH BL2209PB-LA.jpg", price: "Q295.00 c/u", numericPrice: parsePriceToNumber("Q295.00 c/u"), stock: 9, description: "Jarra Plástica. Color Gris. 8 Velocidades más Pulso. Cuchilla Acero Inoxidable 6 puntas. Capacidad: 1.65 Ltr.", popularityScore: 21 },
+
+                // Tazones y Platos
+                { id: 26, title: "Set de 2 Tazones en Caja Decorada Pad Printed", category: "tazones", tags: ["tazones", "set", "decorado"], imageUrl: "images/Set de 2 Tazones en Caja Decorada Pad Printed.jpg", price: "Q19.00 c/u", numericPrice: parsePriceToNumber("Q19.00 c/u"), stock: 50, description: "Capacidad: 10 onz. 50 set x caja.", popularityScore: 10 },
+                { id: 27, title: "Set de 6 Tazones en Caja Decorada Pad Printed", category: "tazones", tags: ["tazones", "set", "decorado"], imageUrl: "images/Set de 6 Tazones en Caja Decorada Pad Printed.jpg", price: "Q54.00 c/u", numericPrice: parsePriceToNumber("Q54.00 c/u"), stock: 20, description: "Capacidad: 10 onz. Diámetro: 4.5 plg. 20 set x caja.", popularityScore: 14 },
+                { id: 28, title: "Set de 4 Tazones con Caja Decorada Pad Printed", category: "tazones", tags: ["tazones", "set", "decorado"], imageUrl: "images/Set de 4 Tazones con Caja Decorada Pad Printed.jpg", price: "Q36.00 c/u", numericPrice: parsePriceToNumber("Q36.00 c/u"), stock: 20, description: "Capacidad: 10 onz. Diámetro: 4.5 plg. 20 set x caja.", popularityScore: 12 },
+                { id: 29, title: "Set de 6 Tazones Diseño de Osos", category: "tazones", tags: ["tazones", "set", "osos", "decorado"], imageUrl: "images/Set de 6 Tazones Diseño de Osos.jpg", price: "Q54.00 c/u", numericPrice: parsePriceToNumber("Q54.00 c/u"), stock: 18, description: "Caja Decorada Pad Printed. Capacidad: 10 onz. Diámetro: 4.5 plg. 20 set x caja.", popularityScore: 16 },
+                { id: 30, title: "Set de 4 Tazones + 2 Platos", category: "tazones", tags: ["tazones", "platos", "set", "decorado"], imageUrl: "images/Set de 4 Tazones + 2 Platos.jpg", price: "Q98.00 c/u", numericPrice: parsePriceToNumber("Q98.00 c/u"), stock: 10, description: "Caja Decorada Pad Printed. Diámetro Tazones: 4.5 plg. Diámetro Platos: 8 plg. 10 set x caja.", popularityScore: 18 },
+                { id: 31, title: "Set de 4 Tazones + 1 Plato", category: "tazones", tags: ["tazones", "plato", "set", "decorado"], imageUrl: "images/Set de 4 Tazones + 1 Plato.jpg", price: "Q65.00 c/u", numericPrice: parsePriceToNumber("Q65.00 c/u"), stock: 15, description: "Caja Decorada Pad Printed. Tazones Diámetro: 4.5 plg. Plato Diámetro: 8 plg. 20 set x caja.", popularityScore: 13 },
+                { id: 32, title: "Set de 2 Tazones de Loza Tapa Plástica Cierre a Presión", category: "tazones", tags: ["tazones", "loza", "tapa", "cierre a presión"], imageUrl: "images/Set de 2 Tazones de Loza Tapa Plástica Cierre a Presión.jpg", price: "Q29.00 c/u", numericPrice: parsePriceToNumber("Q29.00 c/u"), stock: 25, description: "Capacidad: 16 onz. Diámetro: 4.5 plg. 30 set x caja.", popularityScore: 9 },
+                { id: 33, title: "Set de 2 Tazones Caja Decorada Horse", category: "tazones", tags: ["tazones", "set", "caballos", "decorado"], imageUrl: "images/Set de 2 Tazones Caja Decorada Horse.jpg", price: "Q19.00 c/u", numericPrice: parsePriceToNumber("Q19.00 c/u"), stock: 40, description: "Capacidad: 10 onz. Diámetro: 4.5 plg. 50 piezas x caja.", popularityScore: 11 },
+                { id: 34, title: "Set de 2 Tazones Cereal Caja Decorada Pad Printed", category: "tazones", tags: ["tazones", "cereal", "set", "decorado"], imageUrl: "images/Set de 2 Tazones Cereal Caja Decorada Pad Printed.jpg", price: "Q19.00 c/u", numericPrice: parsePriceToNumber("Q19.00 c/u"), stock: 35, description: "Capacidad: 10 onz. Diámetro: 4.5 plg. 50 set x caja.", popularityScore: 10 },
+                { id: 35, title: "Set de 2 Tazones Diseño Flores Caja Decorada Pad Printed", category: "tazones", tags: ["tazones", "flores", "set", "decorado"], imageUrl: "images/Set de 2 Tazones Diseño Flores Caja Decorada Pad Printed.jpg", price: "Q19.00 c/u", numericPrice: parsePriceToNumber("Q19.00 c/u"), stock: 30, description: "Capacidad: 10 onz. Diámetro: 4.5 plg. 50 set x caja.", popularityScore: 8 },
+                { id: 36, title: "Set de 4 Tazones Cereal Caja Decorada Pad Printed", category: "tazones", tags: ["tazones", "cereal", "set", "decorado"], imageUrl: "images/Set de 4 Tazones Cereal Caja Decorada Pad Printed.jpg", price: "Q36.00 c/u", numericPrice: parsePriceToNumber("Q36.00 c/u"), stock: 20, description: "Capacidad: 10 onz. Diámetro: 4.5 plg. 20 set x caja.", popularityScore: 15 },
+                { id: 37, title: "Set de 6 Tazones Cereal Caja Decorada Pad Printed", category: "tazones", tags: ["tazones", "cereal", "set", "decorado"], imageUrl: "images/Set de 6 Tazones Cereal Caja Decorada Pad Printed.jpg", price: "Q54.00 c/u", numericPrice: parsePriceToNumber("Q54.00 c/u"), stock: 15, description: "Capacidad: 10 onz. Diámetro: 4.5 plg. 20 set x caja.", popularityScore: 17 },
+                { id: 38, title: "Set de 2 Tazones Caja Decorada Pad Printed", category: "tazones", tags: ["tazones", "set", "decorado"], imageUrl: "images/Set de 2 Tazones Caja Decorada Pad Printed.jpg", price: "Q19.00 c/u", numericPrice: parsePriceToNumber("Q19.00 c/u"), stock: 50, description: "Capacidad: 10 onz. Diámetro: 4.5 plg. 50 set x caja.", popularityScore: 9 },
+
+                // Vasos y Copas (Cristalería)
+                { id: 39, title: "Vaso Conil 47 RT V0224", category: "cristaleria", tags: ["vaso", "conil", "vidrio"], imageUrl: "images/Vaso Conil 47 RT V0224.jpg", price: "Q6.00 c/u", numericPrice: parsePriceToNumber("Q6.00 c/u"), oldPrice: "Q13.50 c/u", stock: 100, description: "Capacidad: 16 Onz. Diámetro: 8.65 cms. Alto: 14.5 cms. 12 pcs x caja.", popularityScore: 20 },
+                { id: 40, title: "Copa XAREL V0201", category: "cristaleria", tags: ["copa", "xarel", "vidrio"], imageUrl: "images/Copa XAREL V0201.jpg", price: "Q6.00 c/u", numericPrice: parsePriceToNumber("Q6.00 c/u"), oldPrice: "Q10.00 c/u", stock: 80, description: "Capacidad: 5.75 Onz. Diámetro: 5 cms. Alto: 22.1 cms. 12 pcs x caja.", popularityScore: 18 },
+                { id: 41, title: "Vaso PINOT 47 R V0242", category: "cristaleria", tags: ["vaso", "pinot", "vidrio"], imageUrl: "images/Vaso PINOT 47 R V0242.jpg", price: "Q5.00 c/u", numericPrice: parsePriceToNumber("Q5.00 c/u"), oldPrice: "Q9.75 c/u", stock: 60, description: "Capacidad: 15.75 Onz. Diámetro: 8.7 cms. Alto: 10.95 cms. 6 pcs x caja.", popularityScore: 15 },
+                { id: 42, title: "Copa Breval 16 CL V0792", category: "cristaleria", tags: ["copa", "breval", "vidrio"], imageUrl: "images/Copa Breval 16 CL V0792.jpg", price: "Q7.75 c/u", numericPrice: parsePriceToNumber("Q7.75 c/u"), oldPrice: "Q14.50 c/u", stock: 75, description: "Capacidad: 5.5 Onz. Diámetro: 5.65 cms. Alto: 17 cms. 12 pcs x caja.", popularityScore: 16 },
+                { id: 43, title: "Vaso Conil 33 T V0223", category: "cristaleria", tags: ["vaso", "conil", "vidrio"], imageUrl: "images/Vaso Conil 33 T V0223.jpg", price: "Q4.50 c/u", numericPrice: parsePriceToNumber("Q4.50 c/u"), oldPrice: "Q9.25 c/u", stock: 90, description: "Capacidad: 11 Onz. Diámetro: 7.65 cms. Alto: 13.4 cms. 12 pcs x caja.", popularityScore: 19 },
+                { id: 44, title: "Copa Mencia 25 CL V0262", category: "cristaleria", tags: ["copa", "mencia", "vidrio templado"], imageUrl: "images/Copa Mencia 25 CL V0262.jpg", price: "Q8.00 c/u", numericPrice: parsePriceToNumber("Q8.00 c/u"), oldPrice: "Q16.00 c/u", stock: 55, description: "Vidrio templado, 100% Español. Capacidad: 8.25 onz. Altura: 19.2 cms. Diámetro: 7.15 cms. 6 pcs x caja.", popularityScore: 14 },
+                { id: 45, title: "Copa Malta 44 T V0273", category: "cristaleria", tags: ["copa", "malta", "vidrio"], imageUrl: "images/Copa Malta 44 T V0273.jpg", price: "Q9.50 c/u", numericPrice: parsePriceToNumber("Q9.50 c/u"), oldPrice: "Q18.25 c/u", stock: 45, description: "Capacidad: 14.75 Onz. Diámetro: 8.7 cms. Alto: 15.75 cms. 6 pcs x caja.", popularityScore: 12 },
+                { id: 46, title: "Copa Margarita 27 V1099", category: "cristaleria", tags: ["copa", "margarita", "vidrio"], imageUrl: "images/Copa Margarita 27 V1099.jpg", price: "Q12.50 c/u", numericPrice: parsePriceToNumber("Q12.50 c/u"), oldPrice: "Q24.50 c/u", stock: 30, description: "Capacidad: 9 onz. Diámetro: 16.4 cms. Alto: 10.9 cms. 6 pcs x caja.", popularityScore: 10 },
+                { id: 47, title: "Copa Catavinos 21CL V0247", category: "cristaleria", tags: ["copa", "catavinos", "vidrio"], imageUrl: "images/Copa Catavinos 21CL V0247.jpg", price: "Q8.00 c/u", numericPrice: parsePriceToNumber("Q8.00 c/u"), oldPrice: "Q14.50 c/u", stock: 65, description: "Capacidad: 7 onz. Diámetro: 6.5 cms. Alto: 15.5 cms. 6 pcs x caja.", popularityScore: 13 },
+                { id: 48, title: "Vaso Refresquero Ring RNG363", category: "cristaleria", tags: ["vaso", "refresquero", "vidrio"], imageUrl: "images/Vaso Refresquero Ring RNG363.jpg", price: "Q3.00 c/u", numericPrice: parsePriceToNumber("Q3.00 c/u"), oldPrice: "Q8.00 c/u", stock: 120, description: "Capacidad: 350 ml. 48 pcs x caja.", popularityScore: 22 },
+                { id: 49, title: "Copa LONDON 64 R V0219", category: "cristaleria", tags: ["copa", "london", "vidrio"], imageUrl: "images/Copa LONDON 64 R V0219.jpg", price: "Q11.00 c/u", numericPrice: parsePriceToNumber("Q11.00 c/u"), oldPrice: "Q21.25 c/u", stock: 40, description: "Capacidad: 21.5 Onz. Diámetro: 10.1 cms. Alto: 10.1 cms. 6 pcs x caja.", popularityScore: 11 },
+                { id: 50, title: "Copa Mencia 31 RT V0263", category: "cristaleria", tags: ["copa", "mencia", "vidrio"], imageUrl: "images/Copa Mencia 31 RT V0263.jpg", price: "Q11.00 c/u", numericPrice: parsePriceToNumber("Q11.00 c/u"), oldPrice: "Q21.50 c/u", stock: 50, description: "Capacidad: 10.25 Onz. Diámetro: 7.72 cms. Alto: 20.8 cms. 6 pcs x caja.", popularityScore: 17 },
+                { id: 51, title: "Vaso con Pajilla de Vidrio Tapa de Bambú 98819007", category: "cristaleria", tags: ["vaso", "pajilla", "bambú"], imageUrl: "images/Vaso con Pajilla de Vidrio Tapa de Bambú 98819007.jpg", price: "Q19.00 c/u", numericPrice: parsePriceToNumber("Q19.00 c/u"), stock: 85, description: "Capacidad: 450 ml. 97 piezas x caja.", popularityScore: 25 },
+                { id: 52, title: "Copa Victoria 47 Corte Fino V01092", category: "cristaleria", tags: ["copa", "victoria", "corte fino"], imageUrl: "images/Copa Victoria 47 Corte Fino.jpg", price: "Q16.00 c/u", numericPrice: parsePriceToNumber("Q16.00 c/u"), oldPrice: "Q31.00 c/u", stock: 35, description: "Capacidad: 15.75 Onz. Diámetro: 8.65 cms. Alto: 22.1 cms. 6 pcs x caja.", popularityScore: 19 },
+                { id: 53, title: "Copa Platine 25 Corte Fino V01085", category: "cristaleria", tags: ["copa", "platine", "corte fino"], imageUrl: "images/Copa Platine 25 Corte Fino V01085.jpg", price: "Q14.00 c/u", numericPrice: parsePriceToNumber("Q14.00 c/u"), oldPrice: "Q27.00 c/u", stock: 40, description: "Capacidad: 8.0 onz. Altura: 18.2 cms. Diámetro: 7.15 cms. 6 pcs x caja.", popularityScore: 14 },
+                { id: 54, title: "Copa Merlot 19T V0100", category: "cristaleria", tags: ["copa", "merlot", "vidrio"], imageUrl: "images/Copa Merlot 19T V0100.jpg", price: "Q6.00 c/u", numericPrice: parsePriceToNumber("Q6.00 c/u"), oldPrice: "Q12.00 c/u", stock: 95, description: "Capacidad: 6.26 onz. Diámetro: 6.95 cms. Alto: 16.8 cms. 12 pcs x caja.", popularityScore: 10 },
+                // Nuevos productos de cristalería agregados con nombres de archivo de la captura
+                { id: 55, title: "Copa Victoria 58 CL Corte Fino", category: "cristaleria", tags: ["copa", "victoria", "corte fino"], imageUrl: "images/Copa Victoria 58 CL Corte Fino.jpg", price: "Q15.50 c/u", numericPrice: parsePriceToNumber("Q15.50 c/u"), oldPrice: "Q31.00 c/u", stock: 30, description: "Capacidad: 19.5 Onz. Diámetro: 9.3 cms. Alto: 23 cms. 6 pcs x caja.", popularityScore: 21 },
+                { id: 56, title: "Vaso Tequilero CHUPITO 4CL", category: "cristaleria", tags: ["vaso", "tequilero", "chupito"], imageUrl: "images/Vaso Tequilero CHUPITO 4CL.jpg", price: "Q3.00 c/u", numericPrice: parsePriceToNumber("Q3.00 c/u"), oldPrice: "Q5.75 c/u", stock: 150, description: "Capacidad: 1.5 Onz. Diámetro: 4.65 cms. Alto: 4.7 cms. 12 pcs x caja.", popularityScore: 13 },
+                { id: 57, title: "Vaso Aran 35 FB cl", category: "cristaleria", tags: ["vaso", "aran", "vidrio templado"], imageUrl: "images/Vaso Aran 35 FB cl.jpg", price: "Q9.50 c/u", numericPrice: parsePriceToNumber("Q9.50 c/u"), oldPrice: "Q15.00 c/u", stock: 70, description: "Vidrio templado. Vidrio 100% Español. Capacidad: 12 onz. Altura: 10 cms. Diámetro: 9.6 cms. 12 pcs x caja.", popularityScore: 16 },
+                { id: 58, title: "Dulcera o Bombonera Recta de Vidrio con Tapa (1 Ltr.)", category: "cristaleria", tags: ["dulcera", "bombonera", "vidrio", "tapa"], imageUrl: "images/Dulcera o Bombonera Recta de Vidrio con Tapa (1 Ltr.).jpg", price: "Q20.00 c/u", numericPrice: parsePriceToNumber("Q20.00 c/u"), stock: 20, description: "Capacidad: 1 Ltr. 24 piezas x caja.", popularityScore: 8 },
+                { id: 59, title: "Copa Merlot 23R", category: "cristaleria", tags: ["copa", "merlot", "vidrio"], imageUrl: "images/Copa Merlot 23R.jpg", price: "Q6.00 c/u", numericPrice: parsePriceToNumber("Q6.00 c/u"), oldPrice: "Q12.50 c/u", stock: 80, description: "Capacidad: 8 onz. Diámetro: 7.5 cms. Alto: 17.4 cms. 12 pcs x caja.", popularityScore: 11 },
+                { id: 60, title: "Vaso Tequilero AIALA 6 CL", category: "cristaleria", tags: ["vaso", "tequilero", "aiala"], imageUrl: "images/Vaso Tequilero AIALA 6 CL.jpg", price: "Q3.50 c/u", numericPrice: parsePriceToNumber("Q3.50 c/u"), oldPrice: "Q6.75 c/u", stock: 110, description: "Capacidad: 2 Onz. Diámetro: 3.75 cms. Alto: 10.4 cms. 12 pcs x caja.", popularityScore: 9 },
+                { id: 61, title: "Dulcera o Bombonera Recta Tapa de Vidrio (0.65 Ltr.)", category: "cristaleria", tags: ["dulcera", "bombonera", "vidrio", "tapa"], imageUrl: "images/Dulcera o Bombonera Recta Tapa de Vidrio (0.65 Ltr.).jpg", price: "Q15.00 c/u", numericPrice: parsePriceToNumber("Q15.00 c/u"), stock: 25, description: "Capacidad: 0.65 Ltr. 36 piezas x caja.", popularityScore: 7 },
+                { id: 62, title: "Vaso Isaba 42R cl", category: "cristaleria", tags: ["vaso", "isaba", "vidrio templado"], imageUrl: "images/Vaso Isaba 42R cl.jpg", price: "Q6.00 c/u", numericPrice: parsePriceToNumber("Q6.00 c/u"), oldPrice: "Q12.00 c/u", stock: 60, description: "Vidrio templado. Vidrio 100% Español. Capacidad: 14 onz. Altura: 12.4 cms. Diámetro: 8.6 cms. 6 pcs x caja.", popularityScore: 14 },
+                { id: 63, title: "Vaso Syrah 35 T", category: "cristaleria", tags: ["vaso", "syrah", "vidrio"], imageUrl: "images/Vaso Syrah 35 T.jpg", price: "Q6.00 c/u", numericPrice: parsePriceToNumber("Q6.00 c/u"), oldPrice: "Q10.75 c/u", stock: 70, description: "Capacidad: 11.75 Onz. Diámetro: 9.9 cms. Alto: 11.75 cms. 6 pcs x caja.", popularityScore: 10 },
+                { id: 64, title: "Copa Platine 31 Corte Fino", category: "cristaleria", tags: ["copa", "platine", "corte fino"], imageUrl: "images/Copa Platine 31 Corte Fino.jpg", price: "Q14.00 c/u", numericPrice: parsePriceToNumber("Q14.00 c/u"), oldPrice: "Q28.00 c/u", stock: 40, description: "Capacidad: 10 Onz. Diámetro: 7.72 cms. Alto: 20 cms. 6 pcs x caja.", popularityScore: 15 }
+            ];
+
+            // DOM elements
+            const mainTitle = document.getElementById('main-title');
+            const productListingSection = document.getElementById('product-listing-section');
+            const productGrid = document.getElementById('product-grid');
+            const searchInput = document.getElementById('search-input');
+            const noResults = document.getElementById('no-results');
+            const activeFilters = document.getElementById('active-filters');
+            const categoryShowcase = document.getElementById('category-showcase');
+            const backToCategoriesBtn = document.getElementById('back-to-categories-btn');
+            const backToShopBtn = document.getElementById('back-to-shop-btn'); // New: Back to shop button on product detail page
+            const sortOptions = document.getElementById('sort-options'); // New: Sort dropdown
+
+            const productDetailPage = document.getElementById('product-detail-page'); // Renamed from detail-modal
+            const detailImage = document.getElementById('detail-image');
+            const detailTitle = document.getElementById('detail-title');
+            const detailCategory = document.getElementById('detail-category');
+            const detailDescription = document.getElementById('detail-description');
+            const detailPrice = document.getElementById('detail-price');
+            const detailOldPrice = document.getElementById('detail-old-price');
+            const detailTags = document.getElementById('detail-tags');
+            const detailStock = document.getElementById('detail-stock'); // New: Stock display on detail page
+            const addToCartDetailBtn = document.getElementById('add-to-cart-detail');
+            const toggleFavoriteDetailBtn = document.getElementById('toggle-favorite-detail'); // New: Favorite button on detail page
+
+            const cartModal = document.getElementById('cart-modal');
+            const openCartBtn = document.getElementById('open-cart');
+            const closeCartModalBtn = document.getElementById('close-cart-modal');
+            const cartItemsContainer = document.getElementById('cart-items-container');
+            const cartCounter = document.getElementById('cart-counter');
+            const cartSubtotal = document.getElementById('cart-subtotal');
+            const cartTotal = document.getElementById('cart-total');
+            const checkoutButton = document.getElementById('checkout-button');
+            const emptyCartMessage = document.getElementById('empty-cart-message');
+            const clearCartButton = document.getElementById('clear-cart-button');
+            const zipCodeInput = document.getElementById('zip-code');
+            const shippingCostDisplay = document.getElementById('shipping-cost');
+
+            const favoritesModal = document.getElementById('favorites-modal'); // Renamed from saved-for-later-modal
+            const openFavoritesBtn = document.getElementById('open-favorites'); // New: Open favorites button
+            const closeFavoritesModalBtn = document.getElementById('close-favorites-modal'); // Renamed from close-saved-for-later-modal
+            const favoritesItemsContainer = document.getElementById('favorites-items-container'); // Renamed from saved-for-later-items-container
+            const emptyFavoritesMessage = document.getElementById('empty-favorites-message'); // Renamed from empty-saved-message
+            const goToCartFromFavoritesBtn = document.getElementById('go-to-cart-from-favorites'); // Renamed from go-to-cart-from-saved
+            const favoritesCounter = document.getElementById('favorites-counter'); // New: Favorites counter
+
+            const purchaseHistoryModal = document.getElementById('purchase-history-modal');
+            const openHistoryBtn = document.getElementById('open-history');
+            const closeHistoryModalBtn = document.getElementById('close-history-modal');
+            const purchaseHistoryItemsContainer = document.getElementById('purchase-history-items-container');
+            const emptyHistoryMessage = document.getElementById('empty-history-message');
+            const historyCounter = document.getElementById('history-counter');
+
+            // Pagination elements
+            const paginationControls = document.getElementById('pagination-controls');
+            const prevPageBtn = document.getElementById('prev-page-btn');
+            const nextPageBtn = document.getElementById('next-page-btn');
+            const pageInfo = document.getElementById('page-info');
+
+            let currentProducts = [...products];
+            let currentProductIndex = 0;
+            let currentCategoryFilter = 'all';
+            let currentSortOrder = 'default'; // New: Default sort order
+            let cart = [];
+            let favoriteProductIds = []; // Stores only IDs of favorite products
+            let purchaseHistory = [];
+            const SHIPPING_COST = 15.00;
+            const PRODUCTS_PER_PAGE = 12; // Number of products to show per page
+            let currentPage = 1;
+
+            // --- Local Storage Management ---
+            const loadSavedState = () => {
+                try {
+                    const savedSearch = localStorage.getItem('catalogSearch') || '';
+                    const savedCategory = localStorage.getItem('catalogCategory') || 'all';
+                    const savedSort = localStorage.getItem('catalogSortOrder') || 'default'; // Load sort order
+                    const savedPage = parseInt(localStorage.getItem('catalogCurrentPage')) || 1; // Load current page
+                    cart = JSON.parse(localStorage.getItem('shoppingCart')) || [];
+                    favoriteProductIds = JSON.parse(localStorage.getItem('favoriteProductIds')) || []; // Load favorite IDs
+                    purchaseHistory = JSON.parse(localStorage.getItem('purchaseHistory')) || [];
+
+                    searchInput.value = savedSearch;
+                    currentCategoryFilter = savedCategory;
+                    currentSortOrder = savedSort;
+                    currentPage = savedPage;
+                    sortOptions.value = savedSort; // Set dropdown value
+
+                    updateCartCounter();
+                    updateFavoritesCounter(); // Update favorites counter
+                    updateHistoryCounter();
+                    
+                    // Handle initial routing based on URL hash
+                    router();
+                } catch (error) {
+                    console.error('Error loading saved state:', error);
+                }
+            };
+            
+            const saveState = () => {
+                try {
+                    localStorage.setItem('catalogSearch', searchInput.value);
+                    localStorage.setItem('catalogCategory', currentCategoryFilter);
+                    localStorage.setItem('catalogSortOrder', currentSortOrder); // Save sort order
+                    localStorage.setItem('catalogCurrentPage', currentPage); // Save current page
+                    localStorage.setItem('shoppingCart', JSON.stringify(cart));
+                    localStorage.setItem('favoriteProductIds', JSON.stringify(favoriteProductIds)); // Save favorite IDs
+                    localStorage.setItem('purchaseHistory', JSON.stringify(purchaseHistory));
+                } catch (error) {
+                    console.error('Error saving state:', error);
+                }
+            };
+
+            // --- Routing Logic (Simulated Product Pages) ---
+            const router = () => {
+                const hash = window.location.hash;
+                if (hash.startsWith('#product-')) {
+                    const productId = parseInt(hash.replace('#product-', ''));
+                    const product = products.find(p => p.id === productId);
+                    if (product) {
+                        renderProductDetailPage(product);
+                    } else {
+                        // Product not found, go back to home
+                        window.location.hash = '';
+                        renderHomePage();
+                    }
+                } else {
+                    renderHomePage();
+                }
+            };
+
+            const renderHomePage = () => {
+                mainTitle.textContent = 'Explora Nuestros Productos';
+                productDetailPage.classList.add('hidden');
+                productListingSection.classList.add('hidden'); // Hide product listing by default
+
+                if (currentCategoryFilter === 'all' && searchInput.value.trim() === '') {
+                    categoryShowcase.classList.remove('hidden');
+                } else {
+                    // If there's a filter/search, go directly to product listing
+                    categoryShowcase.classList.add('hidden');
+                    productListingSection.classList.remove('hidden');
+                    mainTitle.textContent = 'Productos';
+                    applyFilters();
+                }
+                saveState();
+            };
+
+            const renderProductDetailPage = (product) => {
+                // Hide other sections
+                categoryShowcase.classList.add('hidden');
+                productListingSection.classList.add('hidden');
+                noResults.classList.add('hidden');
+
+                // Show product detail section
+                productDetailPage.classList.remove('hidden');
+                mainTitle.textContent = product.title; // Set main title to product name
+
+                detailImage.src = product.imageUrl;
+                detailTitle.textContent = product.title;
+                detailDescription.textContent = product.description || '';
+                detailPrice.textContent = product.price;
+                detailStock.textContent = `Stock: ${product.stock} disponibles`;
+
+                if (product.oldPrice) {
+                    detailOldPrice.textContent = product.oldPrice;
+                    detailOldPrice.classList.remove('hidden');
+                } else {
+                    detailOldPrice.textContent = '';
+                    detailOldPrice.classList.add('hidden');
+                }
+                
+                const categoryColors = {
+                    sartenes: 'bg-red-100 text-red-800',
+                    ollas: 'bg-blue-100 text-blue-800',
+                    electrodomesticos: 'bg-yellow-100 text-yellow-800',
+                    tazones: 'bg-indigo-100 text-indigo-800', 
+                    cristaleria: 'bg-purple-100 text-purple-800'
+                };
+                
+                const categoryNamesMap = {
+                    sartenes: 'Sartenes',
+                    ollas: 'Ollas y Lecheros',
+                    electrodomesticos: 'Electrodomésticos',
+                    tazones: 'Tazones y Platos',
+                    cristaleria: 'Vasos y Copas'
+                };
+                
+                detailCategory.className = `${categoryColors[product.category]} px-3 py-1 text-sm font-semibold rounded-full`;
+                detailCategory.textContent = categoryNamesMap[product.category];
+                
+                detailTags.innerHTML = '';
+                product.tags.forEach(tag => {
+                    const tagEl = document.createElement('span');
+                    tagEl.className = 'bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full text-xs font-medium';
+                    tagEl.textContent = tag;
+                    detailTags.appendChild(tagEl);
+                });
+                
+                addToCartDetailBtn.dataset.productId = product.id;
+                console.log('DEBUG: Product ID set on detail button:', addToCartDetailBtn.dataset.productId); // Debugging line
+
+                // Update favorite icon on detail page
+                updateFavoriteIcon(product.id, toggleFavoriteDetailBtn.querySelector('i'));
+            };
+
+            // --- Filtering and Sorting ---
+            const updateActiveFilters = () => {
+                activeFilters.innerHTML = '';
+                const searchValue = searchInput.value.trim();
+                
+                if (searchValue) {
+                    const searchTag = document.createElement('div');
+                    searchTag.className = 'bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center';
+                    searchTag.innerHTML = `
+                        Búsqueda: ${searchValue}
+                        <button class="ml-2 text-blue-500 hover:text-blue-700 focus:outline-none" data-filter-type="search">
+                            <i class="fas fa-times-circle"></i>
+                        </button>
+                    `;
+                    activeFilters.appendChild(searchTag);
+                }
+                
+                if (currentCategoryFilter && currentCategoryFilter !== 'all') {
+                    const categoryNamesMap = {
+                        sartenes: 'Sartenes',
+                        ollas: 'Ollas y Lecheros',
+                        electrodomesticos: 'Electrodomésticos',
+                        tazones: 'Tazones y Platos',
+                        cristaleria: 'Vasos y Copas'
+                    };
+                    
+                    const categoryTag = document.createElement('div');
+                    categoryTag.className = 'bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center';
+                    categoryTag.innerHTML = `
+                        Categoría: ${categoryNamesMap[currentCategoryFilter] || currentCategoryFilter}
+                        <button class="ml-2 text-blue-500 hover:text-blue-700 focus:outline-none" data-filter-type="category">
+                            <i class="fas fa-times-circle"></i>
+                        </button>
+                    `;
+                    activeFilters.appendChild(categoryTag);
+                }
+                
+                if (searchValue || (currentCategoryFilter && currentCategoryFilter !== 'all')) {
+                    activeFilters.classList.remove('hidden');
+                } else {
+                    activeFilters.classList.add('hidden');
+                }
+            };
+            
+            const applyFilters = () => {
+                const searchValue = searchInput.value.toLowerCase().trim();
+                
+                updateActiveFilters();
+                
+                let filteredProducts = products.filter(product => {
+                    const matchCategory = currentCategoryFilter === 'all' || product.category === currentCategoryFilter;
+                    const matchSearch = searchValue === '' || 
+                        product.title.toLowerCase().includes(searchValue) || 
+                        product.description.toLowerCase().includes(searchValue) ||
+                        product.tags.some(tag => tag.toLowerCase().includes(searchValue));
+                    return matchCategory && matchSearch;
+                });
+
+                // Apply sorting
+                switch (currentSortOrder) {
+                    case 'price-asc':
+                        filteredProducts.sort((a, b) => a.numericPrice - b.numericPrice);
+                        break;
+                    case 'price-desc':
+                        filteredProducts.sort((a, b) => b.numericPrice - a.numericPrice);
+                        break;
+                    case 'name-asc':
+                        filteredProducts.sort((a, b) => a.title.localeCompare(b.title));
+                        break;
+                    case 'name-desc':
+                        filteredProducts.sort((a, b) => b.title.localeCompare(a.title));
+                        break;
+                    // 'popularity' could be added here if 'popularityScore' is consistently updated by user actions
+                    default:
+                        // No specific sorting, maintain original order or a default one
+                        break;
+                }
+
+                currentProducts = filteredProducts;
+                currentPage = 1; // Reset to first page on new filter/sort
+                renderProducts();
+                saveState();
+            };
+            
+            // Render products to the grid with pagination
+            const renderProducts = () => {
+                productGrid.innerHTML = '';
+                
+                const totalPages = Math.ceil(currentProducts.length / PRODUCTS_PER_PAGE);
+                const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
+                const endIndex = startIndex + PRODUCTS_PER_PAGE;
+                const productsToRender = currentProducts.slice(startIndex, endIndex);
+
+                if (productsToRender.length === 0) {
+                    noResults.classList.remove('hidden');
+                    productGrid.classList.add('hidden');
+                    paginationControls.classList.add('hidden');
+                    return;
+                }
+                
+                noResults.classList.add('hidden');
+                productGrid.classList.remove('hidden');
+                paginationControls.classList.remove('hidden');
+
+                pageInfo.textContent = `Página ${currentPage} de ${totalPages}`;
+                prevPageBtn.disabled = currentPage === 1;
+                nextPageBtn.disabled = currentPage === totalPages;
+                
+                const categoryColors = {
+                    sartenes: 'bg-red-100 text-red-800',
+                    ollas: 'bg-blue-100 text-blue-800',
+                    electrodomesticos: 'bg-yellow-100 text-yellow-800',
+                    tazones: 'bg-indigo-100 text-indigo-800', 
+                    cristaleria: 'bg-purple-100 text-purple-800'
+                };
+                
+                const categoryNamesMap = {
+                    sartenes: 'Sartenes',
+                    ollas: 'Ollas y Lecheros',
+                    electrodomesticos: 'Electrodomésticos',
+                    tazones: 'Tazones y Platos',
+                    cristaleria: 'Vasos y Copas'
+                };
+                
+                productsToRender.forEach((product) => {
+                    const isFavorite = favoriteProductIds.includes(product.id);
+                    const card = document.createElement('div');
+                    card.className = 'product-card bg-white rounded-xl shadow-lg overflow-hidden relative transition duration-300 transform hover:scale-105 hover:shadow-xl';
+                    card.innerHTML = `
+                        <div class="category-badge ${categoryColors[product.category]} px-3 py-1 text-xs font-semibold rounded-full">
+                            ${categoryNamesMap[product.category]}
+                        </div>
+                        <div class="relative h-48 overflow-hidden">
+                            <img src="${product.imageUrl}" alt="${product.title}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/400x300/E2E8F0/A0AEC0?text=Imagen+no+disponible';">
+                            <div class="overlay absolute inset-0 flex items-center justify-center">
+                                <a href="#product-${product.id}" class="view-product bg-white bg-opacity-90 text-blue-700 hover:bg-blue-800 hover:text-white px-5 py-2.5 rounded-full shadow-lg font-semibold transition-all duration-300 transform hover:scale-110">
+                                    <i class="fas fa-eye mr-2"></i> Ver detalle
+                                </a>
+                            </div>
+                        </div>
+                        <div class="p-5">
+                            <h3 class="font-bold text-gray-800 text-lg mb-2 truncate">${product.title}</h3>
+                            <p class="text-gray-600 text-sm mb-3 line-clamp-2">${product.description || ''}</p>
+                            <div class="flex items-baseline mb-2">
+                                <span class="text-xl font-extrabold text-blue-800 mr-2">${product.price}</span>
+                                ${product.oldPrice ? `<s class="text-gray-500 text-base">${product.oldPrice}</s>` : ''}
+                            </div>
+                            <div class="flex flex-wrap gap-1.5 mb-4">
+                                ${product.tags.map(tag => `
+                                    <span class="bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full text-xs font-medium">${tag}</span>
+                                `).join('')}
+                            </div>
+                            <div class="flex justify-between items-center mt-4">
+                                <button class="toggle-favorite-grid text-2xl transition-colors ${isFavorite ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}" data-product-id="${product.id}" title="${isFavorite ? 'Eliminar de Favoritos' : 'Añadir a Favoritos'}">
+                                    <i class="${isFavorite ? 'fas' : 'far'} fa-heart"></i>
+                                </button>
+                                <button class="add-to-cart-grid bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-full shadow-md font-semibold transition-all duration-200 flex items-center justify-center" data-product-id="${product.id}">
+                                    <i class="fas fa-cart-plus mr-2"></i> Añadir
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    productGrid.appendChild(card);
+                    
+                    // Add click event for add to cart button on grid
+                    const addToCartGridBtn = card.querySelector('.add-to-cart-grid');
+                    addToCartGridBtn.addEventListener('click', () => addToCart(product.id));
+
+                    // Add click event for toggle favorite button on grid
+                    const toggleFavoriteGridBtn = card.querySelector('.toggle-favorite-grid');
+                    toggleFavoriteGridBtn.addEventListener('click', () => toggleFavorite(product.id));
+                });
+            };
+            
+            // --- Cart Functionality ---
+            const addToCart = (productId) => {
+                console.log('DEBUG: Attempting to add to cart, Product ID:', productId); // Debugging line
+                if (isNaN(productId)) {
+                    console.error('ERROR: Invalid Product ID received by addToCart:', productId);
+                    return;
+                }
+                const productToAdd = products.find(p => p.id === productId);
+                if (!productToAdd) {
+                    console.error('ERROR: Product not found in catalog for ID:', productId);
+                    return;
+                }
+
+                const existingCartItem = cart.find(item => item.id === productId);
+
+                if (existingCartItem && existingCartItem.quantity >= productToAdd.stock) {
+                    Toastify({
+                        text: `¡No hay suficiente stock para ${productToAdd.title}!`,
+                        duration: 3000,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: "linear-gradient(to right, #F59E0B, #D97706)",
+                        stopOnFocus: true,
+                    }).showToast();
+                    return;
+                } else if (!existingCartItem && productToAdd.stock <= 0) {
+                     Toastify({
+                        text: `¡${productToAdd.title} está agotado!`,
+                        duration: 3000,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: "linear-gradient(to right, #EF4444, #DC2626)",
+                        stopOnFocus: true,
+                    }).showToast();
+                    return;
+                }
+
+                if (existingCartItem) {
+                    existingCartItem.quantity++;
+                } else {
+                    cart.push({ ...productToAdd, quantity: 1 });
+                }
+                
+                Toastify({
+                    text: `${productToAdd.title} añadido al carrito!`,
+                    duration: 2000,
+                    gravity: "top",
+                    position: "right",
+                    backgroundColor: "linear-gradient(to right, #1D4ED8, #1E40AF)",
+                    stopOnFocus: true,
+                }).showToast();
+
+                updateCartCounter();
+                saveState();
+                renderCart();
+            };
+
+            const removeFromCart = (productId) => {
+                cart = cart.filter(item => item.id !== productId);
+                Toastify({
+                    text: `Producto eliminado del carrito.`,
+                    duration: 2000,
+                    gravity: "top",
+                    position: "right",
+                    backgroundColor: "linear-gradient(to right, #EF4444, #DC2626)",
+                    stopOnFocus: true,
+                }).showToast();
+                updateCartCounter();
+                saveState();
+                renderCart();
+            };
+
+            const updateQuantity = (productId, change) => {
+                const cartItem = cart.find(item => item.id === productId);
+                const productInCatalog = products.find(p => p.id === productId);
+
+                if (cartItem && productInCatalog) {
+                    const newQuantity = cartItem.quantity + change;
+                    if (newQuantity > productInCatalog.stock) {
+                        Toastify({
+                            text: `No hay suficiente stock para ${productInCatalog.title}. Stock disponible: ${productInCatalog.stock}`,
+                            duration: 3000,
+                            gravity: "top",
+                            position: "right",
+                            backgroundColor: "linear-gradient(to right, #F59E0B, #D97706)",
+                            stopOnFocus: true,
+                        }).showToast();
+                        return;
+                    }
+                    if (newQuantity <= 0) {
+                        removeFromCart(productId);
+                    } else {
+                        cartItem.quantity = newQuantity;
+                        saveState();
+                        renderCart();
+                    }
+                }
+            };
+
+            const clearCart = () => {
+                if (cart.length === 0) {
+                    Toastify({
+                        text: "El carrito ya está vacío.",
+                        duration: 2000,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: "linear-gradient(to right, #6B7280, #4B5563)",
+                        stopOnFocus: true,
+                    }).showToast();
+                    return;
+                }
+                cart = [];
+                Toastify({
+                    text: "Carrito vaciado.",
+                    duration: 2000,
+                    gravity: "top",
+                    position: "right",
+                    backgroundColor: "linear-gradient(to right, #EF4444, #DC2626)",
+                    stopOnFocus: true,
+                }).showToast();
+                updateCartCounter();
+                saveState();
+                renderCart();
+            };
+
+            const updateCartCounter = () => {
+                const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+                cartCounter.textContent = totalItems;
+                if (totalItems > 0) {
+                    cartCounter.classList.remove('hidden');
+                } else {
+                    cartCounter.classList.add('hidden');
+                }
+            };
+
+            const calculateCartTotal = () => {
+                let subtotal = 0;
+                cart.forEach(item => {
+                    subtotal += item.numericPrice * item.quantity;
+                });
+                
+                let shipping = 0;
+                if (cart.length > 0) {
+                    shipping = SHIPPING_COST;
+                }
+                shippingCostDisplay.textContent = `Q${shipping.toFixed(2)}`;
+
+                let total = subtotal + shipping;
+                
+                cartSubtotal.textContent = `Q${subtotal.toFixed(2)}`;
+                cartTotal.textContent = `Q${total.toFixed(2)}`;
+
+                if (cart.length === 0) {
+                    emptyCartMessage.classList.remove('hidden');
+                    checkoutButton.disabled = true;
+                    checkoutButton.classList.add('opacity-50', 'cursor-not-allowed');
+                    clearCartButton.disabled = true;
+                    clearCartButton.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    emptyCartMessage.classList.add('hidden');
+                    checkoutButton.disabled = false;
+                    checkoutButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                    clearCartButton.disabled = false;
+                    clearCartButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+                return total;
+            };
+
+            const renderCart = () => {
+                cartItemsContainer.innerHTML = '';
+                
+                if (cart.length === 0) {
+                    emptyCartMessage.classList.remove('hidden');
+                } else {
+                    emptyCartMessage.classList.add('hidden');
+                    cart.forEach(item => {
+                        const cartItemEl = document.createElement('div');
+                        cartItemEl.className = 'flex items-center space-x-4 p-4 bg-gray-50 rounded-lg shadow-sm';
+                        cartItemEl.innerHTML = `
+                            <img src="${item.imageUrl}" alt="${item.title}" class="w-16 h-16 object-cover rounded-md border border-gray-200" onerror="this.onerror=null;this.src='https://placehold.co/64x64/E2E8F0/A0AEC0?text=No+Img';">
+                            <div class="flex-grow">
+                                <h4 class="font-semibold text-gray-800">${item.title}</h4>
+                                <p class="text-sm text-gray-600">Precio: ${item.price}</p>
+                                <p class="text-sm text-gray-700">Subtotal: Q${(item.numericPrice * item.quantity).toFixed(2)}</p>
+                                <p class="text-xs text-gray-500">Stock: ${item.stock - item.quantity} disponibles</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button class="quantity-btn decrease-quantity bg-gray-200 hover:bg-gray-300 text-gray-700 w-8 h-8 rounded-full flex items-center justify-center" data-product-id="${item.id}">-</button>
+                                <span class="font-medium text-lg">${item.quantity}</span>
+                                <button class="quantity-btn increase-quantity bg-gray-200 hover:bg-gray-300 text-gray-700 w-8 h-8 rounded-full flex items-center justify-center" data-product-id="${item.id}">+</button>
+                            </div>
+                            <button class="toggle-favorite-cart text-blue-500 hover:text-blue-700 text-xl ml-2" data-product-id="${item.id}" title="Guardar para más tarde">
+                                <i class="fas fa-bookmark"></i>
+                            </button>
+                            <button class="remove-from-cart-btn text-red-500 hover:text-red-700 text-xl ml-2" data-product-id="${item.id}" title="Eliminar del carrito">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        `;
+                        cartItemsContainer.appendChild(cartItemEl);
+                    });
+                }
+                
+                calculateCartTotal();
+            };
+
+            // --- Favorites Functionality ---
+            const toggleFavorite = (productId) => {
+                const index = favoriteProductIds.indexOf(productId);
+                if (index > -1) {
+                    favoriteProductIds.splice(index, 1);
+                    Toastify({
+                        text: `Producto eliminado de favoritos.`,
+                        duration: 2000,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: "linear-gradient(to right, #EF4444, #DC2626)",
+                        stopOnFocus: true,
+                    }).showToast();
+                } else {
+                    favoriteProductIds.push(productId);
+                    Toastify({
+                        text: `Producto añadido a favoritos!`,
+                        duration: 2000,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: "linear-gradient(to right, #EC4899, #DB2777)", // Pink for favorites
+                        stopOnFocus: true,
+                    }).showToast();
+                }
+                saveState();
+                updateFavoritesCounter();
+                renderProducts(); // Re-render product grid to update heart icons
+                renderFavorites(); // Re-render favorites modal if open
+            };
+
+            const updateFavoriteIcon = (productId, iconElement) => {
+                if (favoriteProductIds.includes(productId)) {
+                    iconElement.classList.remove('far');
+                    iconElement.classList.add('fas');
+                    iconElement.classList.add('text-red-500');
+                    iconElement.classList.remove('text-gray-400', 'hover:text-red-500');
+                } else {
+                    iconElement.classList.remove('fas');
+                    iconElement.classList.add('far');
+                    iconElement.classList.remove('text-red-500');
+                    iconElement.classList.add('text-gray-400', 'hover:text-red-500');
+                }
+            };
+
+            const updateFavoritesCounter = () => {
+                favoritesCounter.textContent = favoriteProductIds.length;
+                if (favoriteProductIds.length > 0) {
+                    favoritesCounter.classList.remove('hidden');
+                } else {
+                    favoritesCounter.classList.add('hidden');
+                }
+            };
+
+            const renderFavorites = () => {
+                favoritesItemsContainer.innerHTML = '';
+                if (favoriteProductIds.length === 0) {
+                    emptyFavoritesMessage.classList.remove('hidden');
+                } else {
+                    emptyFavoritesMessage.classList.add('hidden');
+                    favoriteProductIds.forEach(productId => {
+                        const item = products.find(p => p.id === productId);
+                        if (item) {
+                            const favoriteItemEl = document.createElement('div');
+                            favoriteItemEl.className = 'flex items-center space-x-4 p-4 bg-gray-50 rounded-lg shadow-sm';
+                            favoriteItemEl.innerHTML = `
+                                <img src="${item.imageUrl}" alt="${item.title}" class="w-16 h-16 object-cover rounded-md border border-gray-200" onerror="this.onerror=null;this.src='https://placehold.co/64x64/E2E8F0/A0AEC0?text=No+Img';">
+                                <div class="flex-grow">
+                                    <h4 class="font-semibold text-gray-800">${item.title}</h4>
+                                    <p class="text-sm text-gray-600">Precio: ${item.price}</p>
+                                </div>
+                                <button class="add-to-cart-from-favorites-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm font-semibold transition-colors flex items-center" data-product-id="${item.id}">
+                                    <i class="fas fa-cart-plus mr-2"></i> Añadir al Carrito
+                                </button>
+                                <button class="remove-favorite-btn text-red-500 hover:text-red-700 text-xl ml-2" data-product-id="${item.id}" title="Eliminar de Favoritos">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            `;
+                            favoritesItemsContainer.appendChild(favoriteItemEl);
+                        }
+                    });
+                }
+            };
+
+            const moveToCartFromFavorites = (productId) => {
+                const itemToMove = products.find(p => p.id === productId);
+                if (itemToMove) {
+                    // Check stock before moving to cart
+                    if (itemToMove.stock <= 0) {
+                        Toastify({
+                            text: `¡${itemToMove.title} está agotado!`,
+                            duration: 3000,
+                            gravity: "top",
+                            position: "right",
+                            backgroundColor: "linear-gradient(to right, #EF4444, #DC2626)",
+                            stopOnFocus: true,
+                        }).showToast();
+                        return;
+                    }
+
+                    // Remove from favorites
+                    favoriteProductIds = favoriteProductIds.filter(id => id !== productId);
+                    // Add to cart
+                    const existingCartItem = cart.find(item => item.id === productId);
+                    if (existingCartItem) {
+                        existingCartItem.quantity++; // Add one to existing quantity
+                    } else {
+                        cart.push({ ...itemToMove, quantity: 1 }); // Add with quantity 1
+                    }
+                    Toastify({
+                        text: `${itemToMove.title} movido al carrito.`,
+                        duration: 2000,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: "linear-gradient(to right, #1D4ED8, #1E40AF)",
+                        stopOnFocus: true,
+                    }).showToast();
+                    updateCartCounter();
+                    updateFavoritesCounter();
+                    saveState();
+                    renderCart();
+                    renderFavorites();
+                    renderProducts(); // Update heart icon on product grid
+                }
+            };
+
+            // --- Purchase History Functionality ---
+            const updateHistoryCounter = () => {
+                const totalPurchases = purchaseHistory.length;
+                historyCounter.textContent = totalPurchases;
+                if (totalPurchases > 0) {
+                    historyCounter.classList.remove('hidden');
+                } else {
+                    historyCounter.classList.add('hidden');
+                }
+            };
+
+            const renderPurchaseHistory = () => {
+                purchaseHistoryItemsContainer.innerHTML = '';
+                if (purchaseHistory.length === 0) {
+                    emptyHistoryMessage.classList.remove('hidden');
+                } else {
+                    emptyHistoryMessage.classList.add('hidden');
+                    const sortedHistory = [...purchaseHistory].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                    sortedHistory.forEach((purchase, index) => {
+                        const purchaseEntryEl = document.createElement('div');
+                        purchaseEntryEl.className = 'bg-white rounded-lg shadow-md p-6 border border-gray-200';
+                        
+                        const purchaseDate = new Date(purchase.date).toLocaleDateString('es-ES', {
+                            year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                        });
+
+                        purchaseEntryEl.innerHTML = `
+                            <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
+                                <h3 class="text-lg font-bold text-gray-800">Compra #${purchaseHistory.length - index}</h3>
+                                <span class="text-sm text-gray-500">${purchaseDate}</span>
+                            </div>
+                            <div class="space-y-3">
+                                ${purchase.items.map(item => `
+                                    <div class="flex items-center space-x-4">
+                                        <img src="${item.imageUrl}" alt="${item.title}" class="w-12 h-12 object-cover rounded-md border border-gray-100" onerror="this.onerror=null;this.src='https://placehold.co/48x48/E2E8F0/A0AEC0?text=No+Img';">
+                                        <div class="flex-grow">
+                                            <p class="font-medium text-gray-700">${item.title}</p>
+                                            <p class="text-sm text-gray-500">Cantidad: ${item.quantity} | Precio: ${item.price}</p>
+                                        </div>
+                                        <span class="font-semibold text-gray-800">Q${(item.numericPrice * item.quantity).toFixed(2)}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="flex justify-end items-center mt-4 pt-4 border-t border-gray-100">
+                                <span class="text-md font-bold text-gray-800">Total de Compra: Q${purchase.total.toFixed(2)}</span>
+                            </div>
+                        `;
+                        purchaseHistoryItemsContainer.appendChild(purchaseEntryEl);
+                    });
+                }
+                updateHistoryCounter();
+            };
+
+            // --- Event Listeners ---
+            searchInput.addEventListener('input', () => {
+                currentCategoryFilter = 'all'; // Clear category filter on search
+                currentPage = 1; // Reset page on search
+                // When searching, always show product listing
+                categoryShowcase.classList.add('hidden');
+                productListingSection.classList.remove('hidden');
+                mainTitle.textContent = 'Resultados de Búsqueda';
+                applyFilters();
+            });
+            
+            // Category card click event (for large cards)
+            categoryShowcase.addEventListener('click', (e) => {
+                const clickedCard = e.target.closest('.category-card');
+                if (clickedCard) {
+                    currentCategoryFilter = clickedCard.dataset.category;
+                    currentPage = 1; // Reset page on category change
+                    categoryShowcase.classList.add('hidden');
+                    productListingSection.classList.remove('hidden');
+                    mainTitle.textContent = 'Productos';
+                    applyFilters();
+                    window.scrollTo(0, 0); // Scroll to top of product list
+                }
+            });
+
+            // Back to Categories button click event
+            backToCategoriesBtn.addEventListener('click', () => {
+                currentCategoryFilter = 'all';
+                searchInput.value = '';
+                currentPage = 1;
+                sortOptions.value = 'default'; // Reset sort
+                currentSortOrder = 'default';
+                renderHomePage(); // Go back to category showcase
+                window.scrollTo(0, 0); // Scroll to top
+            });
+
+            // Back to Shop button on product detail page
+            backToShopBtn.addEventListener('click', () => {
+                window.location.hash = ''; // Clear hash to go back to home/product list
+            });
+            
+            // Active filters click events (remove filters)
+            activeFilters.addEventListener('click', (e) => {
+                if (e.target.closest('button')) {
+                    const button = e.target.closest('button');
+                    const filterType = button.dataset.filterType;
+                    
+                    if (filterType === 'search') {
+                        searchInput.value = '';
+                    } else if (filterType === 'category') {
+                        currentCategoryFilter = 'all';
+                    }
+                    currentPage = 1; // Reset page when clearing filters
+                    applyFilters();
+                }
+            });
+
+            // Sort options change event
+            sortOptions.addEventListener('change', (e) => {
+                currentSortOrder = e.target.value;
+                currentPage = 1; // Reset page on sort change
+                applyFilters();
+            });
+            
+            // Cart modal events
+            openCartBtn.addEventListener('click', () => {
+                renderCart();
+                cartModal.classList.remove('hidden');
+            });
+
+            closeCartModalBtn.addEventListener('click', () => {
+                cartModal.classList.add('hidden');
+            });
+
+            cartItemsContainer.addEventListener('click', (e) => {
+                const target = e.target;
+                const productId = parseInt(target.closest('button')?.dataset.productId);
+
+                if (isNaN(productId)) return;
+
+                if (target.classList.contains('increase-quantity')) {
+                    updateQuantity(productId, 1);
+                } else if (target.classList.contains('decrease-quantity')) {
+                    updateQuantity(productId, -1);
+                } else if (target.closest('.remove-from-cart-btn')) {
+                    removeFromCart(productId);
+                } else if (target.closest('.toggle-favorite-cart')) {
+                    // When toggling favorite from cart, first toggle favorite status
+                    toggleFavorite(productId);
+                    // Then, remove the item from the cart
+                    removeFromCart(productId);
+                }
+            });
+
+            clearCartButton.addEventListener('click', clearCart);
+
+            checkoutButton.addEventListener('click', () => {
+                if (cart.length > 0) {
+                    const purchaseTotal = calculateCartTotal();
+                    const purchaseDate = new Date().toISOString();
+                    purchaseHistory.push({
+                        date: purchaseDate,
+                        items: JSON.parse(JSON.stringify(cart)),
+                        total: purchaseTotal
+                    });
+
+                    Toastify({
+                        text: "¡Compra finalizada! Gracias por tu pedido.",
+                        duration: 3000,
+                        gravity: "top",
+                        position: "center",
+                        backgroundColor: "linear-gradient(to right, #3B82F6, #2563EB)",
+                        stopOnFocus: true,
+                    }).showToast();
+                    cart = [];
+                    saveState();
+                    updateCartCounter();
+                    updateHistoryCounter();
+                    renderCart();
+                    cartModal.classList.add('hidden');
+                } else {
+                    Toastify({
+                        text: "Tu carrito está vacío. Añade productos antes de finalizar la compra.",
+                        duration: 3000,
+                        gravity: "top",
+                        position: "center",
+                        backgroundColor: "linear-gradient(to right, #F59E0B, #D97706)",
+                        stopOnFocus: true,
+                    }).showToast();
+                }
+            });
+
+            // Favorites modal events (renamed from saved-for-later)
+            openFavoritesBtn.addEventListener('click', () => {
+                renderFavorites();
+                favoritesModal.classList.remove('hidden');
+            });
+
+            closeFavoritesModalBtn.addEventListener('click', () => {
+                favoritesModal.classList.add('hidden');
+            });
+
+            goToCartFromFavoritesBtn.addEventListener('click', () => {
+                favoritesModal.classList.add('hidden');
+                openCartBtn.click();
+            });
+
+            favoritesItemsContainer.addEventListener('click', (e) => {
+                const target = e.target;
+                const productId = parseInt(target.closest('button')?.dataset.productId);
+
+                if (isNaN(productId)) return;
+
+                if (target.closest('.add-to-cart-from-favorites-btn')) { // Changed from move-to-cart-btn
+                    moveToCartFromFavorites(productId);
+                } else if (target.closest('.remove-favorite-btn')) { // Changed from remove-saved-btn
+                    toggleFavorite(productId); // This will remove from favorites
+                }
+            });
+
+            // Product detail page favorite toggle
+            addToCartDetailBtn.addEventListener('click', (e) => {
+                console.log('DEBUG: Add to Cart button on detail page clicked.'); // Debugging line
+                const productId = parseInt(e.currentTarget.dataset.productId); // Get product ID from add to cart button
+                addToCart(productId);
+            });
+
+            toggleFavoriteDetailBtn.addEventListener('click', (e) => {
+                const productId = parseInt(addToCartDetailBtn.dataset.productId); // Get product ID from add to cart button
+                toggleFavorite(productId);
+                // Update the icon on the detail page immediately
+                updateFavoriteIcon(productId, e.currentTarget.querySelector('i'));
+            });
+
+
+            // Purchase History Modal Events
+            openHistoryBtn.addEventListener('click', () => {
+                renderPurchaseHistory();
+                purchaseHistoryModal.classList.remove('hidden');
+            });
+
+            closeHistoryModalBtn.addEventListener('click', () => {
+                purchaseHistoryModal.classList.add('hidden');
+            });
+
+            // Pagination Event Listeners
+            prevPageBtn.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderProducts();
+                    saveState();
+                    window.scrollTo(0, 0); // Scroll to top of product list
+                }
+            });
+
+            nextPageBtn.addEventListener('click', () => {
+                const totalPages = Math.ceil(currentProducts.length / PRODUCTS_PER_PAGE);
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderProducts();
+                    saveState();
+                    window.scrollTo(0, 0); // Scroll to top of product list
+                }
+            });
+
+            // Listen for hash changes to simulate routing
+            window.addEventListener('hashchange', router);
+
+            // Initial load
+            loadSavedState();
+        });
+    </script>
+</body>
+</html>
